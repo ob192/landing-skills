@@ -1,6 +1,6 @@
 ---
 name: landing-page-design
-description: "Plan, design and build a landing page on Next.js + shadcn/ui (Radix) + Tailwind v4 with Geist: intake, facts-first copy, design system before pages, a playground with 2–3 variants of each section, then a screenshot-and-fix loop until accessibility, contrast and layout pass. Use when planning, building, redesigning or reviewing a landing page or marketing site page (hero, benefits, how it works, proof, pricing, FAQ, final CTA). Not for dashboards or app UI; token and primitive work belongs to the project's design-system skill."
+description: "Plan, design and build a landing page on Next.js + shadcn/ui (Radix) + Tailwind v4 with Geist: intake, facts-first copy, design system before pages, a playground with 2–3 variants of each section, optional React Three Fiber 3D and GSAP scroll scenes, then a screenshot-and-fix loop until accessibility, contrast and layout pass. Use when planning, building, redesigning or reviewing a landing page or marketing site page (hero, benefits, how it works, proof, pricing, FAQ, final CTA). Not for dashboards or app UI; token and primitive work belongs to the project's design-system skill."
 ---
 
 <!-- Adapted from elayadesign/ai-design-skills@456d9e0 (MIT). Changes: narrower trigger; a design-system-first workflow
@@ -27,11 +27,11 @@ Work in this order. Do not skip ahead to pages: a section built before the syste
 1. **Intake and copy** (Part A). Facts, structure and layout type. Output the plan in the Output format below before writing code.
 2. **Design system.** With the `design-system` skill: tokens in the CSS file (palette → semantic → `@theme inline` mapping, light and dark), DESIGN.md with roles and rules, Geist with leading and tracking fitted per step (B1). Layout rules (container, grid, section spacing), consistency rules and accessibility (contrast pairs) are decided here, once.
 3. **Playground reference.** With the `design-playground` skill: `/playground` renders every token and every shadcn primitive with its states from real classes. Dev only, `noindex`, 404 in production.
-4. **Section explorations.** For each composite section (hero, benefits, how it works, proof, pricing, FAQ, final CTA band, header, footer) build **2–3 distinct, fully worked variants** in `/playground/<section>`: different structure or hierarchy, not the same layout recoloured, real copy, real primitives. Primitives (button, input, textarea) are not explored; they come from the system. Show the user numbered variants with screenshots and let them pick or combine.
+4. **Section explorations.** For each composite section (hero, benefits, how it works, proof, pricing, FAQ, final CTA band, header, footer) build **2–3 distinct, fully worked variants** in `/playground/<section>`: different structure or hierarchy, not the same layout recoloured, real copy, real primitives. Primitives (button, input, textarea) are not explored; they come from the system. Show the user numbered variants with screenshots and let them pick or combine. When a section gets a 3D variant (B13), one of the others is a non 3D version of the same idea.
 5. **Assemble** the chosen variants into the page, one section at a time (A6). Clean the explorations.
 6. **Verify, fix, repeat** (B12). Every section closes with a quick audit; the page closes with a full one. Loop until no P0 or P1 is left and every P2 is fixed or named with a reason.
 
-**Companion skills.** `design-system`, `design-playground`, `design-audit`, `design-a11y` and `design-mobile` do steps 2–6 when the project has them. If it does not, do the same steps by hand with Part B as the fallback system and B12 as the check.
+**Companion skills.** `design-system`, `design-playground`, `design-audit`, `design-a11y` and `design-mobile` do steps 2–6 when the project has them. If it does not, do the same steps by hand with Part B as the fallback system and B12 as the check. For 3D and scroll animation, load the three.js and GSAP skills named in B13.
 
 **Precedence.** If the project has DESIGN.md and `.claude/rules/design/`, they win over every value in Part B (colours, spacing, radius, motion, type steps). Part A, B8, B9, B10 and B12 apply everywhere.
 
@@ -71,6 +71,7 @@ Gather these before designing or writing. Ask only for what is missing, and ask 
 **Constraints**
 - Brand voice: casual or professional
 - Design direction: minimal editorial, playful 3D, glass UI
+- 3D: is there a physical product, model or space that 3D shows better than a photo? Is a GLB or source model available? (B13)
 - Mobile priority?
 
 If the user cannot answer, make a reasonable assumption, state it in one line, and continue. Do not stall the build.
@@ -455,6 +456,50 @@ Nothing is done because the code looks right. It is done when the rendered page 
 
 With the companion skills, quick mode is `design-audit` quick, full mode is `design-audit` full plus `design-a11y` and `design-mobile`.
 
+## B13. 3D and WebGL (optional)
+
+**Earn it.** Use 3D only when it shows the product better than a photo or video: a physical product to turn, a configurator, a space or mechanism that needs depth. Not floating shapes for atmosphere. Decide it at intake (A1). In the section explorations a 3D variant always sits beside a non 3D variant of the same section, and the user picks.
+
+**Stack.**
+- React Three Fiber (`@react-three/fiber` 9 on React 19) with `@react-three/drei`. Plain three.js only outside React. Spline only for a quick prototype or a scene a designer hands over; count its runtime in the budget.
+- Scroll: GSAP ScrollTrigger through `useGSAP` from `@gsap/react` with a `scope` ref, or drei `ScrollControls` for a story that lives entirely in the canvas. Keep native scroll. Lenis only when the user asks; then ScrollTrigger reads from Lenis and CSS `scroll-behavior: smooth` is removed.
+- Companion skills: load the matching one before writing the code. [CloudAI-X/threejs-skills](https://github.com/CloudAI-X/threejs-skills) (`threejs-react-three-fiber`, `threejs-performance`, `threejs-loaders`, `threejs-materials`, `threejs-lighting`) and [greensock/gsap-skills](https://github.com/greensock/gsap-skills) (`gsap-react`, `gsap-scrolltrigger`, `gsap-performance`).
+
+**Next.js.**
+- The canvas lives in a client component loaded with `next/dynamic` and `ssr: false`.
+- The server renders a **poster**: a still of the scene at the same framing (AVIF or WebP, `next/image`, `priority` in the hero). The poster is the LCP element, never the canvas. The scene replaces it after its first frame renders, in a box with a fixed `aspect-ratio` so nothing shifts.
+- Load the scene after the page is interactive, or when its section nears the viewport. The primary CTA works before the scene loads.
+
+**Content stays in the DOM.** Headline, copy, prices and CTAs are HTML over or beside the canvas, never WebGL text. A decorative canvas wrapper is `aria-hidden`; a scene that carries information has a text equivalent next to it.
+
+**Assets.**
+- GLB only, compressed: `gltf-transform optimize in.glb out.glb --compress meshopt --texture-compress webp` (Draco or KTX2 when the scene needs them).
+- Budget per scene: under 100k triangles, under 5 MB compressed (aim far lower for a hero), textures at most 2048 px.
+- A metallic material needs an environment map, or it renders black.
+
+**Performance.**
+- Cap `dpr={[1, 2]}`; let drei `PerformanceMonitor` drop it to 1 when the frame rate declines.
+- `frameloop="demand"` when nothing moves, and stop rendering while the section is off screen.
+- Motion comes from `delta` in `useFrame`, so 60 Hz and 144 Hz screens look the same. Mutate refs in `useFrame`; never `setState` there.
+- Repeats go through `Instances`; dispose what you load when it unmounts.
+- No `OrbitControls` as decoration. When the product needs free rotation, disable zoom so the wheel still scrolls the page, and leave vertical touch scrolling to the page (`touch-action: pan-y`).
+- Phones get a lighter scene (fewer lights, no shadows or post processing). Low end devices, a failed WebGL context and Save-Data get the poster only.
+- Custom shaders declare `precision mediump float` for mobile GPUs.
+
+**Motion and accessibility.**
+- Under `prefers-reduced-motion`: no camera flights, no scrubbed scenes, no idle spin. Show the poster or a still frame; interaction stays optional.
+- No scroll hijacking. A pinned section holds only as long as its content needs, and keyboard, screen reader and normal scrolling still reach the next section.
+- No autoplay audio.
+
+**Contrast over 3D.** Text over a canvas is text over an image: measure it on real pixels at the brightest frame of the animation (B12 step 3). Add a scrim token when it fails.
+
+**Verify (adds to B12).**
+- No WebGL errors or warnings in the console.
+- The scene renders at 375 and 1440, and the poster path renders with reduced motion on and with WebGL disabled.
+- A steady 60 fps on desktop and at least 30 fps under 4× CPU throttling with phone emulation, measured in a performance trace.
+- LCP is the poster; no layout shift when the canvas swaps in.
+- Compare Lighthouse mobile with and without the scene. A drop is a finding to fix or name.
+
 ---
 
 # Output format
@@ -469,6 +514,7 @@ When generating a landing page from scratch, return these in order before writin
 5. **FAQ** — six to twelve questions and answers
 6. **SEO / AEO** — index or noindex recommendation, plus title and meta if indexed
 7. **Layout recommendation** — A, B, C, or D, and why
+8. **3D decision** — none, or which section gets a scene, what it shows that a photo cannot, and the asset it needs
 
 Then follow the Workflow: design system, playground reference, section explorations, assembly per A6, verification per B12.
 
@@ -505,6 +551,14 @@ Then follow the Workflow: design system, playground reference, section explorati
 - [ ] Playground reference shows every token and primitive
 - [ ] Each composite section had 2–3 worked variants and the user picked
 - [ ] Explorations cleaned after assembly
+
+**3D, if used** (B13)
+- [ ] The scene shows something a photo cannot; a non 3D variant was compared
+- [ ] Poster is server rendered and is the LCP element; no shift when the canvas swaps in
+- [ ] Copy and CTAs are HTML; CTA works before the scene loads
+- [ ] GLB compressed and within budget; `dpr` capped; rendering stops off screen
+- [ ] Reduced motion, WebGL failure and low end devices get the poster
+- [ ] 60 fps desktop, 30 fps throttled phone; no WebGL console errors
 
 **Content and ship**
 - [ ] Real draft copy, believable names and numbers, no banned filler words

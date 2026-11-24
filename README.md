@@ -15,6 +15,15 @@ Skills for Claude Code (and other agents that read `SKILL.md`) that design and b
 
 `landing-page-design` works alone; with the other five it hands them steps 2–6 of its workflow.
 
+### 3D and scroll animation (optional)
+
+`landing-page-design` has a 3D section (B13) for React Three Fiber scenes and GSAP ScrollTrigger. It leans on these third-party skills, which are not bundled here:
+
+```bash
+npx skills add CloudAI-X/threejs-skills -a claude-code
+npx skills add greensock/gsap-skills -a claude-code
+```
+
 ## Install
 
 ```bash
